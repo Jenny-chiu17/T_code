@@ -1,0 +1,37 @@
+﻿# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# --- Node/Web ---
+node_modules/
+dist/
+build/
+coverage/
+*.log
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Artifacts ---
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# --- Optional data/models ---
+data/
+datasets/
+checkpoints/
+runs/
+outputs/
