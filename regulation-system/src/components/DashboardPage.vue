@@ -5,11 +5,11 @@
     <!-- 統計卡片 -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-number">{{ stats.pending }}</div>
+        <div class="stat-number">{{ store.pendingCount }}</div>
         <div class="stat-label">待審閱項目</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">{{ stats.completed }}</div>
+        <div class="stat-number">{{ store.completedCount }}</div>
         <div class="stat-label">已完成項目</div>
       </div>
     </div>
@@ -31,9 +31,10 @@
     <div class="card">
       <h3 style="margin-bottom: 20px;">📋 最近的分析項目</h3>
       
+      <!-- 待審閱 -->
       <h4 style="color: #ef4444; margin-bottom: 12px;">🔴 待審閱</h4>
       <div 
-        v-for="item in pendingItems" 
+        v-for="item in store.pendingAnalyses" 
         :key="item.id"
         class="history-item"
       >
@@ -43,18 +44,26 @@
               {{ item.name }}
             </div>
             <div style="font-size: 14px; color: #64748b;">
-              {{ item.date }} | {{ item.info }}
+              {{ item.date }} | 
+              {{ item.externalRegulations?.length || 0 }} 份外規 | 
+              {{ item.totalPolicies }} 份內規 | 
+              進度：{{ item.reviewedPolicies }}/{{ item.totalPolicies }} 審閱中
             </div>
           </div>
-          <button class="btn btn-primary" @click="$emit('navigate', 2)">
+          <button class="btn btn-primary" @click="goToReview(item.id)">
             繼續審閱
           </button>
         </div>
       </div>
 
+      <div v-if="store.pendingAnalyses.length === 0" style="text-align: center; color: #94a3b8; padding: 20px;">
+        目前沒有待審閱項目
+      </div>
+
+      <!-- 已完成 -->
       <h4 style="color: #10b981; margin: 24px 0 12px 0;">🟢 已完成</h4>
       <div 
-        v-for="item in completedItems" 
+        v-for="item in store.completedAnalyses" 
         :key="item.id"
         class="history-item"
       >
@@ -64,48 +73,44 @@
               {{ item.name }}
             </div>
             <div style="font-size: 14px; color: #64748b;">
-              {{ item.date }} | {{ item.info }}
+              {{ item.date }} | 
+              {{ item.externalRegulations?.length || 0 }} 份外規 | 
+              {{ item.totalPolicies }} 份內規 | 
+              全部已審閱
             </div>
           </div>
-          <button class="btn btn-secondary">查看結果</button>
+          <button class="btn btn-secondary" @click="viewResult(item.id)">查看結果</button>
         </div>
+      </div>
+
+      <div v-if="store.completedAnalyses.length === 0" style="text-align: center; color: #94a3b8; padding: 20px;">
+        目前沒有已完成項目
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
+import { useAnalysisStore } from '@/stores/analysisStore'
 
-defineEmits(['navigate'])
+const emit = defineEmits(['navigate'])
+const store = useAnalysisStore()
 
-const stats = ref({
-  pending: 5,
-  completed: 3
-})
+// 跳轉到審閱頁面
+const goToReview = (id) => {
+  store.setCurrentAnalysis(id)
+  emit('navigate', 2)
+}
 
-const pendingItems = ref([
-  {
-    id: 1,
-    name: '📄 XXXXX 法規',
-    date: '2024/10/10 14:30',
-    info: '12 份內規 | 進度：3/12 審閱中'
-  }
-])
+// 查看結果
+const viewResult = (id) => {
+  store.setCurrentAnalysis(id)
+  emit('navigate', 2)
+}
 
-const completedItems = ref([
-  {
-    id: 2,
-    name: '📄 XXXXX 條文',
-    date: '2024/10/05 16:20',
-    info: '15 份內規 | 全部已審閱'
-  }
-])
-
-// 🔌 載入儀表板資料
+// 載入資料
 onMounted(async () => {
-  // TODO: 從後端 API 載入資料
-  // const response = await fetch('/api/dashboard/stats')
-  // stats.value = await response.json()
+  await store.fetchAnalyses()
 })
 </script>

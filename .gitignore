@@ -1,37 +1,18 @@
-﻿# --- Python ---
-__pycache__/
-*.py[cod]
-*.egg-info/
-.venv/
-venv/
-.env
-.env.*
-.pytest_cache/
-.mypy_cache/
-.ipynb_checkpoints/
-
-# --- Node/Web ---
+﻿# Node/Vite
 node_modules/
 dist/
 build/
-coverage/
+.vite/
 *.log
 
-# --- IDE / OS ---
+# Vue/Vite 常見
+*.local
+.env
+.env.*
+!.env.example
+
+# IDE/OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-
-# --- Artifacts ---
-*.zip
-*.tar
-*.tar.gz
-*.7z
-
-# --- Optional data/models ---
-data/
-datasets/
-checkpoints/
-runs/
-outputs/

@@ -20,16 +20,7 @@
 
     <div class="text-label">✏️ 建議修改為</div>
     <div class="text-box suggested">
-      <template v-if="!isEditing">
-        {{ displayText }}
-      </template>
-      <template v-else>
-        <textarea v-model="editedText" class="edit-textarea"></textarea>
-        <div style="margin-top: 12px; display: flex; gap: 8px;">
-          <button class="btn btn-success" @click="saveEdit">💾 儲存並接受</button>
-          <button class="btn btn-secondary" @click="cancelEdit">取消</button>
-        </div>
-      </template>
+      {{ modification.suggested }}
     </div>
 
     <div class="reason-box">
@@ -38,7 +29,6 @@
 
     <div v-if="modification.status === 'pending'" class="mod-actions">
       <button class="btn btn-success" @click="accept">✅ 接受</button>
-      <button class="btn btn-warning" @click="startEdit">✏️ 編輯後接受</button>
       <button class="btn btn-danger" @click="reject">❌ 拒絕</button>
     </div>
 
@@ -54,67 +44,30 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-
 const props = defineProps({
-  modification: Object
+  modification: Object,
+  policyId: Number
 })
 
-const isEditing = ref(false)
-const editedText = ref('')
-const displayText = computed(() => 
-  props.modification.customText || props.modification.suggested
-)
+const emit = defineEmits(['update-status'])
 
-const startEdit = () => {
-  isEditing.value = true
-  editedText.value = displayText.value
-}
-
-const cancelEdit = () => {
-  isEditing.value = false
-}
-
-const saveEdit = async () => {
-  // 🔌 TODO: 呼叫後端 API
-  /*
-  await fetch(`/api/modifications/${props.modification.id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      status: 'accepted',
-      custom_text: editedText.value
-    })
+const accept = () => {
+  emit('update-status', {
+    modificationId: props.modification.id,
+    status: 'accepted'
   })
-  */
-
-  props.modification.customText = editedText.value
-  props.modification.status = 'accepted'
-  isEditing.value = false
-
-  console.log('🔌 API呼叫：PATCH /api/modifications/' + props.modification.id, {
-    status: 'accepted',
-    custom_text: editedText.value
-  })
+  console.log('✅ 接受修改建議:', props.modification.id)
 }
 
-const accept = async () => {
-  // 🔌 TODO: 呼叫後端 API
-  /*
-  await fetch(`/api/modifications/${props.modification.id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: 'accepted' })
+const reject = () => {
+  if (!confirm('確定要拒絕此修改建議嗎？')) {
+    return
+  }
+  
+  emit('update-status', {
+    modificationId: props.modification.id,
+    status: 'rejected'
   })
-  */
-
-  props.modification.status = 'accepted'
-  console.log('🔌 API呼叫：PATCH /api/modifications/' + props.modification.id)
-}
-
-const reject = async () => {
-  // 🔌 TODO: 呼叫後端 API
-  props.modification.status = 'rejected'
-  console.log('🔌 API呼叫：PATCH /api/modifications/' + props.modification.id)
+  console.log('❌ 拒絕修改建議:', props.modification.id)
 }
 </script>

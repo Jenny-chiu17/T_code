@@ -26,6 +26,8 @@
           v-for="mod in policy.modifications"
           :key="mod.id"
           :modification="mod"
+          :policy-id="policy.id"
+          @update-status="handleUpdateStatus"
         />
       </div>
     </div>
@@ -40,6 +42,8 @@ const props = defineProps({
   policy: Object
 })
 
+const emit = defineEmits(['update-modification'])
+
 const isExpanded = ref(false)
 
 const toggleExpand = () => {
@@ -52,4 +56,12 @@ const progressClass = computed(() => {
   if (reviewedCount < modificationsCount) return 'progress-circle progress-inprogress'
   return 'progress-circle progress-completed'
 })
+
+const handleUpdateStatus = ({ modificationId, status }) => {
+  emit('update-modification', {
+    policyId: props.policy.id,
+    modificationId,
+    status
+  })
+}
 </script>

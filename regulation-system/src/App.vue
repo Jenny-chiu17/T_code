@@ -33,6 +33,21 @@
       <!-- 頁面 3: 審閱修改 -->
       <ReviewPage v-if="currentPage === 2" @navigate="navigateTo" />
     </div>
+
+    <!-- 底部版權資訊 -->
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="footer-section">
+          <p>© 2025 內外規比對系統. All rights reserved.</p>
+        </div>
+        <div class="footer-section">
+          <p>資料來源：內部規章資料庫</p>
+        </div>
+        <div class="footer-section">
+          <p>Powered by AI 智能比對引擎</p>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 

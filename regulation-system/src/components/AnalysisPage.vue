@@ -15,39 +15,50 @@
       >
         <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
         <h3>拖曳檔案到此處</h3>
-        <p style="color: #64748b; margin: 8px 0;">或點擊選擇檔案</p>
+        <p style="color: #64748b; margin: 8px 0;">或點擊選擇檔案（可多選）</p>
         <p style="color: #94a3b8; font-size: 14px;">
-          支援 PDF, DOCX, TXT | 檔案大小限制: 10MB
+          支援 PDF, DOCX, TXT | 每個檔案大小限制: 10MB
         </p>
       </div>
 
       <input 
         ref="fileInput"
         type="file" 
+        multiple
         style="display: none;"
         accept=".pdf,.docx,.txt"
         @change="handleFileSelect"
       >
 
-      <div class="divider">
-        <span class="divider-text">或</span>
-      </div>
-
-      <div>
-        <label class="input-label">貼上外規文字內容</label>
-        <textarea 
-          v-model="textInput"
-          class="text-input"
-          placeholder="在此貼上外規條文內容..."
-        ></textarea>
+      <div v-if="selectedFiles.length > 0" style="margin-top: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="margin: 0;">已選擇 {{ selectedFiles.length }} 個檔案</h3>
+          <button class="btn btn-secondary" @click="clearAllFiles">清除全部</button>
+        </div>
+        
+        <div 
+          v-for="(file, index) in selectedFiles" 
+          :key="index"
+          style="margin-bottom: 12px; padding: 16px; background: #eff6ff; border-radius: 8px;"
+        >
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 24px;">📄</span>
+            <div style="flex: 1;">
+              <div style="font-weight: 600; color: #1e293b;">{{ file.name }}</div>
+              <div style="font-size: 14px; color: #64748b;">{{ formatFileSize(file.size) }}</div>
+            </div>
+            <button class="btn btn-secondary" @click="removeFile(index)">移除</button>
+          </div>
+        </div>
       </div>
 
       <div style="text-align: center; margin-top: 24px;">
         <button 
           class="btn btn-primary btn-lg"
+          :disabled="selectedFiles.length === 0"
           @click="startAnalysis"
         >
-          開始分析
+          開始分析 ({{ selectedFiles.length }} 個檔案)
         </button>
       </div>
     </div>
@@ -57,7 +68,7 @@
       <div class="progress-header">
         <div class="progress-icon">🔄</div>
         <h2 style="margin-bottom: 8px;">AI 正在分析您的外規</h2>
-        <p style="color: #64748b;">{{ fileName }}</p>
+        <p style="color: #64748b;">正在處理 {{ selectedFiles.length }} 個檔案...</p>
       </div>
 
       <div class="progress-bar-container">
@@ -111,13 +122,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useAnalysisStore } from '@/stores/analysisStore'
 
 const emit = defineEmits(['navigate'])
+const store = useAnalysisStore()
 
 const isAnalyzing = ref(false)
-const selectedFile = ref(null)
-const textInput = ref('')
-const fileName = ref('')
+const selectedFiles = ref([])
 const progress = ref(0)
 const timeRemaining = ref(60)
 
@@ -130,49 +141,52 @@ const steps = ref([
 ])
 
 const handleFileSelect = (event) => {
-  selectedFile.value = event.target.files[0]
-  if (selectedFile.value) {
-    fileName.value = selectedFile.value.name
-  }
+  const files = Array.from(event.target.files)
+  selectedFiles.value = [...selectedFiles.value, ...files]
 }
 
 const handleDrop = (event) => {
-  const files = event.dataTransfer.files
-  if (files.length > 0) {
-    selectedFile.value = files[0]
-    fileName.value = files[0].name
-  }
+  const files = Array.from(event.dataTransfer.files)
+  selectedFiles.value = [...selectedFiles.value, ...files]
+}
+
+const removeFile = (index) => {
+  selectedFiles.value.splice(index, 1)
+}
+
+const clearAllFiles = () => {
+  selectedFiles.value = []
+}
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
 }
 
 // 🔌 開始分析
 const startAnalysis = async () => {
-  if (!selectedFile.value && !textInput.value) {
-    alert('請上傳檔案或貼上文字')
+  if (selectedFiles.value.length === 0) {
+    alert('請上傳檔案')
     return
   }
 
-  // TODO: 呼叫後端 API
-  /*
-  const formData = new FormData()
-  if (selectedFile.value) {
-    formData.append('file', selectedFile.value)
-  } else {
-    formData.append('text', textInput.value)
-  }
-
-  const response = await fetch('/api/analyze', {
-    method: 'POST',
-    body: formData
-  })
-
-  const { analysis_id } = await response.json()
-  pollProgress(analysis_id)
-  */
-
-  // Demo: 模擬進度
   isAnalyzing.value = true
-  fileName.value = selectedFile.value?.name || '外規文字.txt'
+  
+  // 模擬進度
   simulateProgress()
+  
+  // 提交到後端（現在是模擬）
+  setTimeout(async () => {
+    const success = await store.submitMultipleAnalysis(selectedFiles.value)
+    if (success) {
+      // 分析完成，跳轉到審閱頁面
+      const newAnalysis = store.analyses[0] // 最新的分析
+      store.setCurrentAnalysis(newAnalysis.id)
+    }
+  }, 100)
 }
 
 // Demo: 模擬進度更新
@@ -211,6 +225,7 @@ const getStepClass = (index) => {
 }
 
 const completeAnalysis = () => {
+  // 跳轉到審閱頁面
   emit('navigate', 2)
 }
 </script>
