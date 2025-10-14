@@ -44,8 +44,8 @@
               {{ item.name }}
             </div>
             <div style="font-size: 14px; color: #64748b;">
-              {{ item.date }} | 
-              {{ item.externalRegulations?.length || 0 }} 份外規 | 
+              {{ item.date}} | 
+              {{ item.externalRegulations?.length || 0 }} 份差異表 | 
               {{ item.totalPolicies }} 份內規 | 
               進度：{{ item.reviewedPolicies }}/{{ item.totalPolicies }} 審閱中
             </div>
@@ -74,7 +74,7 @@
             </div>
             <div style="font-size: 14px; color: #64748b;">
               {{ item.date }} | 
-              {{ item.externalRegulations?.length || 0 }} 份外規 | 
+              {{ item.externalRegulations?.length || 0 }} 份差異表 | 
               {{ item.totalPolicies }} 份內規 | 
               全部已審閱
             </div>

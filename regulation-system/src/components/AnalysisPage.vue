@@ -13,11 +13,14 @@
         @dragover.prevent
         @drop.prevent="handleDrop"
       >
-        <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
-        <h3>拖曳檔案到此處</h3>
+        <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+        <h3>上傳差異比較表</h3>
         <p style="color: #64748b; margin: 8px 0;">或點擊選擇檔案（可多選）</p>
         <p style="color: #94a3b8; font-size: 14px;">
-          支援 PDF, DOCX, TXT | 每個檔案大小限制: 10MB
+          支援 PDF, DOCX, XLSX, CSV | 每個檔案大小限制: 10MB
+        </p>
+        <p style="color: #2563eb; font-size: 13px; margin-top: 8px;">
+          💡 系統將自動讀取內規與外規資料進行比對分析
         </p>
       </div>
 
@@ -26,13 +29,13 @@
         type="file" 
         multiple
         style="display: none;"
-        accept=".pdf,.docx,.txt"
+        accept=".pdf,.docx,.xlsx,.csv"
         @change="handleFileSelect"
       >
 
       <div v-if="selectedFiles.length > 0" style="margin-top: 24px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <h3 style="margin: 0;">已選擇 {{ selectedFiles.length }} 個檔案</h3>
+          <h3 style="margin: 0;">已選擇 {{ selectedFiles.length }} 個差異比較表</h3>
           <button class="btn btn-secondary" @click="clearAllFiles">清除全部</button>
         </div>
         
@@ -42,7 +45,7 @@
           style="margin-bottom: 12px; padding: 16px; background: #eff6ff; border-radius: 8px;"
         >
           <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 24px;">📄</span>
+            <span style="font-size: 24px;">📊</span>
             <div style="flex: 1;">
               <div style="font-weight: 600; color: #1e293b;">{{ file.name }}</div>
               <div style="font-size: 14px; color: #64748b;">{{ formatFileSize(file.size) }}</div>
@@ -58,7 +61,7 @@
           :disabled="selectedFiles.length === 0"
           @click="startAnalysis"
         >
-          開始分析 ({{ selectedFiles.length }} 個檔案)
+          開始分析比對 ({{ selectedFiles.length }} 個檔案)
         </button>
       </div>
     </div>
@@ -67,7 +70,7 @@
     <div v-else class="analysis-progress-card">
       <div class="progress-header">
         <div class="progress-icon">🔄</div>
-        <h2 style="margin-bottom: 8px;">AI 正在分析您的外規</h2>
+        <h2 style="margin-bottom: 8px;">AI 正在分析比對您的差異表</h2>
         <p style="color: #64748b;">正在處理 {{ selectedFiles.length }} 個檔案...</p>
       </div>
 
@@ -102,12 +105,15 @@
             <div style="font-size: 12px; color: #64748b;">
               {{ step.status }}
             </div>
+            <div v-if="step.estimatedTime && !step.completed" style="font-size: 11px; color: #94a3b8;">
+              預計 {{ step.estimatedTime }}
+            </div>
           </div>
         </div>
       </div>
 
       <div style="margin-top: 24px; padding: 16px; background: #eff6ff; border-radius: 8px; text-align: center;">
-        <span style="color: #2563eb;">💡 小提示：系統正在比對您的 168 份內規資料庫...</span>
+        <span style="color: #2563eb;">💡 {{ currentTip }}</span>
       </div>
 
       <!-- Demo 按鈕 -->
@@ -121,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore'
 
 const emit = defineEmits(['navigate'])
@@ -130,15 +136,58 @@ const store = useAnalysisStore()
 const isAnalyzing = ref(false)
 const selectedFiles = ref([])
 const progress = ref(0)
-const timeRemaining = ref(60)
+const timeRemaining = ref(90)
 
 const steps = ref([
-  { name: '文字提取與預處理', icon: '⏸️', status: '等待中', completed: false },
-  { name: '關鍵詞與語義分析', icon: '⏸️', status: '等待中', completed: false },
-  { name: '搜尋相關內規', icon: '⏸️', status: '等待中', completed: false },
-  { name: '生成修改建議', icon: '⏸️', status: '等待中', completed: false },
-  { name: '整理分析結果', icon: '⏸️', status: '等待中', completed: false }
+  { 
+    name: '差異表解析與資料提取', 
+    icon: '⏸️', 
+    status: '等待中', 
+    completed: false,
+    estimatedTime: '15秒'
+  },
+  { 
+    name: 'RAG 檢索比對', 
+    icon: '⏸️', 
+    status: '等待中', 
+    completed: false,
+    estimatedTime: '25秒'
+  },
+  { 
+    name: '相似度計算與分類', 
+    icon: '⏸️', 
+    status: '等待中', 
+    completed: false,
+    estimatedTime: '20秒'
+  },
+  { 
+    name: 'AI 建議生成', 
+    icon: '⏸️', 
+    status: '等待中', 
+    completed: false,
+    estimatedTime: '20秒'
+  },
+  { 
+    name: '報告匯出與整理', 
+    icon: '⏸️', 
+    status: '等待中', 
+    completed: false,
+    estimatedTime: '10秒'
+  }
 ])
+
+const tips = [
+  '系統正在比對您的 168 份內規資料庫...',
+  '正在使用 RAG 技術進行深度檢索...',
+  'AI 正在分析條文相似度與關聯性...',
+  '正在生成精準的修改建議...',
+  '即將完成，正在整理分析結果...'
+]
+
+const currentTip = computed(() => {
+  const stepIndex = Math.floor(progress.value / 20)
+  return tips[Math.min(stepIndex, tips.length - 1)]
+})
 
 const handleFileSelect = (event) => {
   const files = Array.from(event.target.files)
@@ -169,7 +218,7 @@ const formatFileSize = (bytes) => {
 // 🔌 開始分析
 const startAnalysis = async () => {
   if (selectedFiles.value.length === 0) {
-    alert('請上傳檔案')
+    alert('請上傳差異比較表')
     return
   }
 
@@ -192,8 +241,8 @@ const startAnalysis = async () => {
 // Demo: 模擬進度更新
 const simulateProgress = () => {
   const interval = setInterval(() => {
-    progress.value += 2
-    timeRemaining.value = Math.max(0, 60 - progress.value)
+    progress.value += 1.1  // 調整速度以配合 90 秒
+    timeRemaining.value = Math.max(0, Math.round(90 - (progress.value * 0.9)))
 
     // 更新步驟狀態
     const stepIndex = Math.floor(progress.value / 20)
@@ -202,9 +251,14 @@ const simulateProgress = () => {
         step.icon = '✅'
         step.status = '完成'
         step.completed = true
+        step.estimatedTime = null
       } else if (index === stepIndex) {
         step.icon = '⏳'
         step.status = '進行中...'
+        // 顯示剩餘時間
+        const remainingSteps = steps.value.length - index
+        const avgTime = timeRemaining.value / remainingSteps
+        step.estimatedTime = `約 ${Math.round(avgTime)} 秒`
       }
     })
 
@@ -213,6 +267,7 @@ const simulateProgress = () => {
       steps.value[4].icon = '✅'
       steps.value[4].status = '完成'
       steps.value[4].completed = true
+      steps.value[4].estimatedTime = null
     }
   }, 200)
 }

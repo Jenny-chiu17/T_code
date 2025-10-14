@@ -7,7 +7,7 @@
     <div v-if="currentAnalysis" style="margin-bottom: 24px;">
       <h1 style="margin-bottom: 8px;">📋 審閱與修改 #{{ currentAnalysis.id }}</h1>
       <p style="color: #64748b;">
-        📦 批次分析：{{ currentAnalysis.externalRegulations.length }} 份外規 | 
+        📦 批次分析：{{ currentAnalysis.externalRegulations.length }} 份差異表 | 
         ⏰ 分析時間：{{ currentAnalysis.date }}
       </p>
     </div>
@@ -27,17 +27,17 @@
           <div class="impact-item">
             <div style="font-size: 24px;">🔴</div>
             <div class="impact-number impact-high">{{ overallStats.high }}</div>
-            <div class="impact-label">高度相關</div>
+            <div class="impact-label">高度相關 (≥80%)</div>
           </div>
           <div class="impact-item">
             <div style="font-size: 24px;">🟡</div>
             <div class="impact-number impact-medium">{{ overallStats.medium }}</div>
-            <div class="impact-label">中度相關</div>
+            <div class="impact-label">中度相關 (50-79%)</div>
           </div>
           <div class="impact-item">
             <div style="font-size: 24px;">🟢</div>
             <div class="impact-number impact-low">{{ overallStats.low }}</div>
-            <div class="impact-label">低度相關</div>
+            <div class="impact-label">低度相關 (<50%)</div>
           </div>
           <div class="impact-item">
             <div style="font-size: 24px;">📊</div>
@@ -57,80 +57,107 @@
         >
       </div>
 
-      <!-- 按外規文件分組顯示 -->
-      <div v-if="currentAnalysis.externalRegulations.length > 0">
+      <!-- 第一層：按相似度分類 -->
+      
+      <!-- 🔴 高度相關 -->
+      <div v-if="highSimilarityPolicies.length > 0" class="card" style="margin-bottom: 24px;">
         <div 
-          v-for="extReg in currentAnalysis.externalRegulations"
-          :key="extReg.id"
-          class="card"
-          style="margin-bottom: 24px;"
+          class="similarity-header" 
+          style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; cursor: pointer;"
+          @click="toggleSection('high')"
         >
-          <!-- 外規標題 -->
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
-            <div>
-              <h2 style="margin-bottom: 8px;">{{ extReg.name }}</h2>
-              <p style="color: #64748b; font-size: 14px;">
-                檔案：{{ extReg.fileName }} | 
-                影響 {{ extReg.policies.length }} 份內規
-              </p>
-            </div>
-          </div>
-
-          <!-- 該外規的影響統計 -->
-          <div class="impact-stats" style="margin-bottom: 24px;">
-            <div class="impact-item">
-              <div style="font-size: 20px;">🔴</div>
-              <div class="impact-number impact-high" style="font-size: 20px;">
-                {{ getRegulationStats(extReg).high }}
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 32px;">🔴</span>
+              <div>
+                <h2 style="margin: 0; color: #991b1b;">高度相關 (相似度 ≥80%)</h2>
+                <p style="margin: 4px 0 0 0; color: #dc2626; font-size: 14px;">
+                  需優先處理 • {{ highSimilarityPolicies.length }} 份內規 • {{ getModificationCount(highSimilarityPolicies) }} 項修改建議
+                </p>
               </div>
-              <div class="impact-label" style="font-size: 12px;">高度相關</div>
             </div>
-            <div class="impact-item">
-              <div style="font-size: 20px;">🟡</div>
-              <div class="impact-number impact-medium" style="font-size: 20px;">
-                {{ getRegulationStats(extReg).medium }}
-              </div>
-              <div class="impact-label" style="font-size: 12px;">中度相關</div>
-            </div>
-            <div class="impact-item">
-              <div style="font-size: 20px;">🟢</div>
-              <div class="impact-number impact-low" style="font-size: 20px;">
-                {{ getRegulationStats(extReg).low }}
-              </div>
-              <div class="impact-label" style="font-size: 12px;">低度相關</div>
-            </div>
-            <div class="impact-item">
-              <div style="font-size: 20px;">📊</div>
-              <div class="impact-number impact-total" style="font-size: 20px;">
-                {{ extReg.policies.length }}
-              </div>
-              <div class="impact-label" style="font-size: 12px;">總計</div>
-            </div>
+            <span style="font-size: 24px; color: #991b1b;">{{ expandedSections.high ? '▼' : '▶' }}</span>
           </div>
+        </div>
 
-          <!-- 該外規的內規列表 -->
-          <div v-if="getFilteredPolicies(extReg).length > 0">
-            <div class="group-header">
-              <span>📋</span>
-              <span>受影響的內規列表 ({{ getFilteredPolicies(extReg).length }})</span>
-            </div>
-
-            <PolicyAccordion 
-              v-for="policy in getFilteredPolicies(extReg)"
-              :key="policy.id"
-              :policy="policy"
-              @update-modification="handleUpdateModification"
-            />
-          </div>
-
-          <div v-else style="text-align: center; color: #94a3b8; padding: 20px;">
-            沒有找到相關內規
-          </div>
+        <!-- 第二層：內規列表 -->
+        <div v-show="expandedSections.high">
+          <PolicyAccordion 
+            v-for="policy in highSimilarityPolicies"
+            :key="policy.id"
+            :policy="policy"
+            @update-modification="handleUpdateModification"
+          />
         </div>
       </div>
 
-      <div v-else style="text-align: center; color: #94a3b8; padding: 40px;">
-        此分析項目沒有外規資料
+      <!-- 🟡 中度相關 -->
+      <div v-if="mediumSimilarityPolicies.length > 0" class="card" style="margin-bottom: 24px;">
+        <div 
+          class="similarity-header" 
+          style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; cursor: pointer;"
+          @click="toggleSection('medium')"
+        >
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 32px;">🟡</span>
+              <div>
+                <h2 style="margin: 0; color: #92400e;">中度相關 (相似度 50-79%)</h2>
+                <p style="margin: 4px 0 0 0; color: #d97706; font-size: 14px;">
+                  建議處理 • {{ mediumSimilarityPolicies.length }} 份內規 • {{ getModificationCount(mediumSimilarityPolicies) }} 項修改建議
+                </p>
+              </div>
+            </div>
+            <span style="font-size: 24px; color: #92400e;">{{ expandedSections.medium ? '▼' : '▶' }}</span>
+          </div>
+        </div>
+
+        <!-- 第二層：內規列表 -->
+        <div v-show="expandedSections.medium">
+          <PolicyAccordion 
+            v-for="policy in mediumSimilarityPolicies"
+            :key="policy.id"
+            :policy="policy"
+            @update-modification="handleUpdateModification"
+          />
+        </div>
+      </div>
+
+      <!-- 🟢 低度相關 -->
+      <div v-if="lowSimilarityPolicies.length > 0" class="card" style="margin-bottom: 24px;">
+        <div 
+          class="similarity-header" 
+          style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; cursor: pointer;"
+          @click="toggleSection('low')"
+        >
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 32px;">🟢</span>
+              <div>
+                <h2 style="margin: 0; color: #065f46;">低度相關 (相似度 <50%)</h2>
+                <p style="margin: 4px 0 0 0; color: #059669; font-size: 14px;">
+                  參考即可 • {{ lowSimilarityPolicies.length }} 份內規 • {{ getModificationCount(lowSimilarityPolicies) }} 項修改建議
+                </p>
+              </div>
+            </div>
+            <span style="font-size: 24px; color: #065f46;">{{ expandedSections.low ? '▼' : '▶' }}</span>
+          </div>
+        </div>
+
+        <!-- 第二層：內規列表 -->
+        <div v-show="expandedSections.low">
+          <PolicyAccordion 
+            v-for="policy in lowSimilarityPolicies"
+            :key="policy.id"
+            :policy="policy"
+            @update-modification="handleUpdateModification"
+          />
+        </div>
+      </div>
+
+      <!-- 沒有內規 -->
+      <div v-if="allPolicies.length === 0" style="text-align: center; color: #94a3b8; padding: 40px;">
+        沒有找到相關內規
       </div>
 
       <!-- 底部下載區 -->
@@ -160,6 +187,11 @@ defineEmits(['navigate'])
 const store = useAnalysisStore()
 
 const searchQuery = ref('')
+const expandedSections = ref({
+  high: true,    // 高度相關預設展開
+  medium: false,
+  low: false
+})
 
 // 當前審閱的分析項目
 const currentAnalysis = computed(() => store.currentAnalysis)
@@ -170,44 +202,58 @@ const reviewProgress = computed(() => {
   return `${currentAnalysis.value.reviewedPolicies}/${currentAnalysis.value.totalPolicies} 已完成`
 })
 
-// 整體統計（所有外規的統計總和）
-const overallStats = computed(() => {
-  if (!currentAnalysis.value) return { high: 0, medium: 0, low: 0 }
-  
-  let high = 0, medium = 0, low = 0
-  
+// 取得所有內規（展平）
+const allPolicies = computed(() => {
+  if (!currentAnalysis.value) return []
+  const policies = []
   currentAnalysis.value.externalRegulations.forEach(extReg => {
-    extReg.policies.forEach(policy => {
-      if (policy.similarity >= 80) high++
-      else if (policy.similarity >= 50) medium++
-      else low++
-    })
+    policies.push(...extReg.policies)
   })
-  
-  return { high, medium, low }
+  return policies
 })
 
-// 取得特定外規的統計
-const getRegulationStats = (extReg) => {
-  let high = 0, medium = 0, low = 0
-  
-  extReg.policies.forEach(policy => {
-    if (policy.similarity >= 80) high++
-    else if (policy.similarity >= 50) medium++
-    else low++
-  })
-  
-  return { high, medium, low }
-}
-
-// 取得特定外規的篩選後內規列表
-const getFilteredPolicies = (extReg) => {
-  if (!searchQuery.value) return extReg.policies
+// 篩選後的內規
+const filteredPolicies = computed(() => {
+  if (!searchQuery.value) return allPolicies.value
 
   const query = searchQuery.value.toLowerCase()
-  return extReg.policies.filter(policy =>
+  return allPolicies.value.filter(policy =>
     policy.name.toLowerCase().includes(query)
   )
+})
+
+// 🔴 高度相關的內規 (≥80%)
+const highSimilarityPolicies = computed(() => {
+  return filteredPolicies.value.filter(p => p.similarity >= 80)
+})
+
+// 🟡 中度相關的內規 (50-79%)
+const mediumSimilarityPolicies = computed(() => {
+  return filteredPolicies.value.filter(p => p.similarity >= 50 && p.similarity < 80)
+})
+
+// 🟢 低度相關的內規 (<50%)
+const lowSimilarityPolicies = computed(() => {
+  return filteredPolicies.value.filter(p => p.similarity < 50)
+})
+
+// 整體統計
+const overallStats = computed(() => {
+  return {
+    high: highSimilarityPolicies.value.length,
+    medium: mediumSimilarityPolicies.value.length,
+    low: lowSimilarityPolicies.value.length
+  }
+})
+
+// 計算修改建議總數
+const getModificationCount = (policies) => {
+  return policies.reduce((sum, policy) => sum + policy.modificationsCount, 0)
+}
+
+// 切換區段展開/收合
+const toggleSection = (section) => {
+  expandedSections.value[section] = !expandedSections.value[section]
 }
 
 // 處理修改建議狀態更新
@@ -228,3 +274,14 @@ const downloadCompleted = () => {
   alert(`🔌 需要串接：GET /api/download/${currentAnalysis.value.id}/completed`)
 }
 </script>
+
+<style scoped>
+.similarity-header {
+  transition: all 0.3s ease;
+}
+
+.similarity-header:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+</style>
